@@ -1,0 +1,208 @@
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.static('public'));
+
+// 5-letter English words dictionary
+// In production, this should be loaded from a file
+const DICTIONARY = [
+  'about', 'above', 'abuse', 'actor', 'acute', 'admit', 'adopt', 'adult', 'after', 'again',
+  'agent', 'agree', 'ahead', 'alarm', 'album', 'alert', 'align', 'alike', 'alive', 'allow',
+  'alone', 'along', 'alter', 'amber', 'amend', 'among', 'ample', 'angel', 'anger', 'angle',
+  'angry', 'ankle', 'annoy', 'apart', 'apple', 'apply', 'arena', 'argue', 'arise', 'array',
+  'arrow', 'aside', 'asset', 'avoid', 'awake', 'award', 'aware', 'badly', 'baker', 'bases',
+  'basic', 'basis', 'beach', 'began', 'begin', 'being', 'below', 'bench', 'billy', 'birth',
+  'black', 'blade', 'blame', 'blank', 'blend', 'bless', 'blind', 'block', 'blood', 'bloom',
+  'blown', 'board', 'boost', 'booth', 'bound', 'brain', 'brand', 'brass', 'brave', 'bread',
+  'break', 'breed', 'brief', 'bring', 'broad', 'broke', 'brown', 'build', 'built', 'burst',
+  'buyer', 'cable', 'calif', 'carry', 'catch', 'cause', 'chain', 'chair', 'chaos', 'charm',
+  'chart', 'chase', 'cheap', 'check', 'chest', 'chief', 'child', 'china', 'chose', 'civil',
+  'claim', 'class', 'clean', 'clear', 'click', 'cliff', 'climb', 'clock', 'close', 'cloud',
+  'coach', 'coast', 'could', 'count', 'court', 'cover', 'craft', 'crash', 'crazy', 'cream',
+  'crime', 'cross', 'crowd', 'crown', 'crude', 'curve', 'cycle', 'daily', 'dance', 'dated',
+  'dealt', 'death', 'debut', 'delay', 'delta', 'dense', 'depth', 'doing', 'doubt', 'dozen',
+  'draft', 'drama', 'drank', 'drawn', 'dream', 'dress', 'drill', 'drink', 'drive', 'drove',
+  'dying', 'eager', 'early', 'earth', 'eight', 'elect', 'elite', 'empty', 'enemy', 'enjoy',
+  'enter', 'entry', 'equal', 'error', 'event', 'every', 'exact', 'exist', 'extra', 'faith',
+  'false', 'fault', 'fiber', 'field', 'fifth', 'fifty', 'fight', 'final', 'first', 'fixed',
+  'flash', 'fleet', 'floor', 'fluid', 'focus', 'force', 'forth', 'forty', 'forum', 'found',
+  'frame', 'frank', 'fraud', 'fresh', 'front', 'fruit', 'fully', 'funny', 'giant', 'given',
+  'glass', 'globe', 'going', 'grace', 'grade', 'grand', 'grant', 'grass', 'grave', 'great',
+  'green', 'gross', 'group', 'grown', 'guard', 'guess', 'guest', 'guide', 'guilty', 'happy',
+  'harry', 'heart', 'heavy', 'hence', 'henry', 'horse', 'hotel', 'house', 'human', 'ideal',
+  'image', 'imply', 'index', 'inner', 'input', 'issue', 'japan', 'jimmy', 'joint', 'jones',
+  'judge', 'known', 'label', 'large', 'laser', 'later', 'laugh', 'layer', 'learn', 'lease',
+  'least', 'leave', 'legal', 'lemon', 'level', 'lewis', 'light', 'limit', 'links', 'lives',
+  'local', 'logic', 'loose', 'lower', 'lucky', 'lunch', 'lying', 'magic', 'major', 'maker',
+  'march', 'maria', 'match', 'maybe', 'mayor', 'meant', 'media', 'metal', 'might', 'minor',
+  'minus', 'mixed', 'model', 'money', 'month', 'moral', 'motor', 'mount', 'mouse', 'mouth',
+  'movie', 'music', 'needs', 'never', 'newly', 'night', 'noise', 'north', 'noted', 'novel',
+  'nurse', 'occur', 'ocean', 'offer', 'often', 'order', 'other', 'ought', 'paint', 'panel',
+  'paper', 'party', 'peace', 'peter', 'phase', 'phone', 'photo', 'piano', 'piece', 'pilot',
+  'pitch', 'place', 'plain', 'plane', 'plant', 'plate', 'point', 'pound', 'power', 'press',
+  'price', 'pride', 'prime', 'print', 'prior', 'prize', 'proof', 'proud', 'prove', 'queen',
+  'quick', 'quiet', 'quite', 'radio', 'raise', 'range', 'rapid', 'ratio', 'reach', 'ready',
+  'refer', 'right', 'rigid', 'rival', 'river', 'robin', 'roger', 'roman', 'rough', 'round',
+  'route', 'royal', 'rural', 'scale', 'scene', 'scope', 'score', 'sense', 'serve', 'seven',
+  'shall', 'shape', 'share', 'sharp', 'sheet', 'shelf', 'shell', 'shift', 'shine', 'shirt',
+  'shock', 'shoot', 'short', 'shown', 'sight', 'since', 'sixth', 'sixty', 'sized', 'skill',
+  'sleep', 'slide', 'small', 'smart', 'smile', 'smith', 'smoke', 'solid', 'solve', 'sorry',
+  'sound', 'south', 'space', 'spare', 'speak', 'speed', 'spend', 'spent', 'split', 'spoke',
+  'sport', 'staff', 'stage', 'stake', 'stand', 'start', 'state', 'steam', 'steel', 'stick',
+  'still', 'stock', 'stone', 'stood', 'store', 'storm', 'story', 'strip', 'stuck', 'study',
+  'stuff', 'style', 'sugar', 'suite', 'super', 'sweet', 'table', 'taken', 'taste', 'taxes',
+  'teach', 'terry', 'texas', 'thank', 'theft', 'their', 'theme', 'there', 'these', 'thick',
+  'thing', 'think', 'third', 'those', 'three', 'threw', 'throw', 'tight', 'times', 'title',
+  'today', 'topic', 'total', 'touch', 'tough', 'tower', 'track', 'trade', 'train', 'treat',
+  'trend', 'trial', 'tribe', 'tried', 'tries', 'truck', 'truly', 'trust', 'truth', 'twice',
+  'under', 'undue', 'union', 'unity', 'until', 'upper', 'upset', 'urban', 'usage', 'usual',
+  'valid', 'value', 'video', 'virus', 'visit', 'vital', 'vocal', 'voice', 'waste', 'watch',
+  'water', 'wheel', 'where', 'which', 'while', 'white', 'whole', 'whose', 'woman', 'women',
+  'world', 'worry', 'worse', 'worst', 'worth', 'would', 'wound', 'write', 'wrong', 'wrote',
+  'yield', 'young', 'youth'
+];
+
+/**
+ * Core word filtering logic
+ * @param {string} pattern - 5-letter pattern with _ for blanks (e.g., "a__l_")
+ * @param {string} included - Letters that must appear in the word
+ * @param {string} excluded - Letters that must not appear in the word
+ * @returns {string[]} Array of matching words
+ */
+function filterWords(pattern, included = '', excluded = '') {
+  // Normalize inputs
+  pattern = pattern.toLowerCase().trim();
+  included = included.toLowerCase().trim();
+  excluded = excluded.toLowerCase().trim();
+
+  // Validate pattern length
+  if (pattern.length !== 5) {
+    throw new Error('Pattern must be exactly 5 characters');
+  }
+
+  // Validate pattern characters (only letters and underscores)
+  if (!/^[a-z_]+$/.test(pattern)) {
+    throw new Error('Pattern must contain only letters and underscores');
+  }
+
+  // Convert pattern to regex
+  const patternRegex = new RegExp(
+    '^' + pattern.replace(/_/g, '[a-z]') + '$'
+  );
+
+  // Convert included letters to Set for efficient lookup
+  const includedSet = new Set(included.split(''));
+  includedSet.delete(''); // Remove empty string if present
+
+  // Convert excluded letters to Set
+  const excludedSet = new Set(excluded.split(''));
+  excludedSet.delete(''); // Remove empty string if present
+
+  // Filter dictionary
+  return DICTIONARY.filter(word => {
+    // Check if word matches the pattern
+    if (!patternRegex.test(word)) {
+      return false;
+    }
+
+    // Check if word contains any excluded letters
+    for (const letter of excludedSet) {
+      if (word.includes(letter)) {
+        return false;
+      }
+    }
+
+    // Check if word contains all included letters
+    for (const letter of includedSet) {
+      if (!word.includes(letter)) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+}
+
+// API Routes
+
+/**
+ * POST /api/solve
+ * Accepts word puzzle constraints and returns matching words
+ */
+app.post('/api/solve', (req, res) => {
+  try {
+    const { pattern, included, excluded } = req.body;
+
+    // Validate required fields
+    if (!pattern) {
+      return res.status(400).json({
+        error: 'Pattern is required',
+        message: 'Please provide a 5-letter pattern'
+      });
+    }
+
+    // Filter words based on constraints
+    const matches = filterWords(pattern, included, excluded);
+
+    // Return results
+    res.json({
+      success: true,
+      count: matches.length,
+      matches: matches,
+      query: {
+        pattern,
+        included: included || '',
+        excluded: excluded || ''
+      }
+    });
+
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/stats
+ * Returns dictionary statistics
+ */
+app.get('/api/stats', (req, res) => {
+  res.json({
+    totalWords: DICTIONARY.length,
+    wordLength: 5
+  });
+});
+
+/**
+ * GET /api/health
+ * Health check endpoint
+ */
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Serve frontend
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`🎯 Word Puzzle Solver API running on port ${PORT}`);
+  console.log(`📖 Dictionary loaded with ${DICTIONARY.length} words`);
+  console.log(`🌐 Access the app at http://localhost:${PORT}`);
+});
+
+module.exports = { filterWords }; // Export for testing or future bot integration
